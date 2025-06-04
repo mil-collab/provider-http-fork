@@ -38,6 +38,12 @@ const (
 	ActionRemove  = "REMOVE"
 )
 
+// Condition types for the Request resource.
+const (
+	ConditionTypeFatalFailure         xpv1.ConditionType   = "FatalFailure"
+	ConditionReasonFatalErrorDetected xpv1.ConditionReason = "FatalErrorDetected"
+)
+
 // RequestParameters are the configurable fields of a Request.
 type RequestParameters struct {
 	// Mappings defines the HTTP mappings for different methods.
@@ -65,6 +71,9 @@ type RequestParameters struct {
 
 	// IsRemovedCheck specifies the mechanism to validate the OBSERVE response after removal against expected value.
 	IsRemovedCheck ExpectedResponseCheck `json:"isRemovedCheck,omitempty"`
+
+	// FatalFailureCheck specifies a mechanism to detect unrecoverable errors after CREATE or UPDATE requests.
+	FatalFailureCheck ExpectedResponseCheck `json:"fatalFailureCheck,omitempty"`
 }
 
 type Mapping struct {

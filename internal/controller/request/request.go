@@ -18,10 +18,12 @@ package request
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -149,6 +151,13 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		return managed.ExternalObservation{}, errors.New(errNotRequest)
 	}
 
+	if cond := cr.Status.GetCondition(v1alpha2.ConditionTypeFatalFailure); cond.Status == corev1.ConditionTrue {
+		return managed.ExternalObservation{
+			ResourceExists:   true,
+			ResourceUpToDate: false,
+		}, nil
+	}
+
 	observeRequestDetails, err := c.isUpToDate(ctx, cr)
 	if err != nil && err.Error() == observe.ErrObjectNotFound {
 		return managed.ExternalObservation{
@@ -209,7 +218,26 @@ func (c *external) deployAction(ctx context.Context, cr *v1alpha2.Request, actio
 		return err
 	}
 
-	return statusHandler.SetRequestStatus()
+	if err := statusHandler.SetRequestStatus(); err != nil {
+		return err
+	}
+
+	isFatal, ferr := runFatalFailureCheck(ctx, cr, details, err, c.localKube, c.logger, c.http)
+	if ferr != nil {
+		return ferr
+	}
+
+	if isFatal {
+		cr.Status.SetConditions(xpv1.Condition{
+			Type:    v1alpha2.ConditionTypeFatalFailure,
+			Status:  corev1.ConditionTrue,
+			Reason:  v1alpha2.ConditionReasonFatalErrorDetected,
+			Message: fmt.Sprintf("%s response indicated fatal error per .spec.fatalFailureCheck", action),
+		})
+		return c.localKube.Status().Update(ctx, cr)
+	}
+
+	return nil
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
