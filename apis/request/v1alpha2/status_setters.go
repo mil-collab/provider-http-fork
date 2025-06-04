@@ -1,6 +1,8 @@
 package v1alpha2
 
-import "time"
+import (
+	"time"
+)
 
 func (d *Request) SetStatusCode(statusCode int) {
 	d.Status.Response.StatusCode = statusCode

@@ -27,8 +27,10 @@ import (
 )
 
 const (
-	ExpectedResponseCheckTypeDefault = "DEFAULT"
-	ExpectedResponseCheckTypeCustom  = "CUSTOM"
+	ExpectedResponseCheckTypeDefault                       = "DEFAULT"
+	ExpectedResponseCheckTypeCustom                        = "CUSTOM"
+	ConditionTypeFatalFailure         xpv1.ConditionType   = "FatalFailure"
+	ConditionReasonFatalErrorDetected xpv1.ConditionReason = "FatalErrorDetected"
 )
 
 const (

@@ -3,7 +3,11 @@ package utils
 import (
 	"context"
 
+	"github.com/crossplane-contrib/provider-http/apis/request/v1alpha2"
 	httpClient "github.com/crossplane-contrib/provider-http/internal/clients/http"
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -48,6 +52,22 @@ func (rr *RequestResource) SetBody() SetRequestStatusFunc {
 		if resp, ok := rr.Resource.(ResponseSetter); ok {
 			if rr.HttpResponse.Body != "" {
 				resp.SetBody(rr.HttpResponse.Body)
+			}
+		}
+	}
+}
+
+func (rr *RequestResource) SetConditions() SetRequestStatusFunc {
+	return func() {
+		if resp, ok := rr.Resource.(ConditionSetter); ok {
+			if IsHTTPError(rr.HttpResponse.StatusCode) {
+				resp.SetConditions(
+					xpv1.Condition{
+						Type:               v1alpha2.ConditionTypeFatalFailure,
+						Status:             corev1.ConditionTrue,
+						LastTransitionTime: metav1.Now(),
+						Reason:             v1alpha2.ConditionReasonFatalErrorDetected,
+					})
 			}
 		}
 	}
@@ -138,6 +158,11 @@ type LastReconcileTimeSetter interface {
 // RequestDetailsSetter is an interface that defines the method to set the request details of a resource.
 type RequestDetailsSetter interface {
 	SetRequestDetails(url, method, body string, headers map[string][]string)
+}
+
+// ConditionSetter is an interface that defines the method to set the request status conditions.
+type ConditionSetter interface {
+	SetConditions(conditions ...xpv1.Condition)
 }
 
 // SetRequestResourceStatus sets the status of a resource.

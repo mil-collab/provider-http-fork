@@ -48,6 +48,7 @@ func (r *requestStatusHandler) SetRequestStatus() error {
 		r.resource.SetHeaders(),
 		r.resource.SetBody(),
 		r.resource.SetRequestDetails(),
+		r.resource.SetConditions(),
 	}
 
 	basicSetters = append(basicSetters, *r.extraSetters...)

@@ -32,6 +32,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/crossplane-contrib/provider-http/apis/request/v1alpha2"
 	apisv1alpha1 "github.com/crossplane-contrib/provider-http/apis/v1alpha1"
@@ -147,6 +148,13 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	cr, ok := mg.(*v1alpha2.Request)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotRequest)
+	}
+
+	if cond := cr.Status.GetCondition(v1alpha2.ConditionTypeFatalFailure); cond.Status == corev1.ConditionTrue {
+		return managed.ExternalObservation{
+			ResourceExists:   true,
+			ResourceUpToDate: true,
+		}, nil
 	}
 
 	observeRequestDetails, err := c.isUpToDate(ctx, cr)
